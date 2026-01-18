@@ -1,0 +1,296 @@
+{
+  "name": "Chatbot Telegram - Clima (OpenWeather)",
+  "nodes": [
+    {
+      "parameters": {
+        "updates": [
+          "message"
+        ],
+        "additionalFields": {}
+      },
+      "id": "f0f6a4ed-4c10-46ec-ad09-49d1829e4b1f",
+      "name": "Telegram Trigger",
+      "type": "n8n-nodes-base.telegramTrigger",
+      "typeVersion": 1,
+      "position": [
+        -1200,
+        -144
+      ],
+      "webhookId": "60ff8ab2-7ed1-4674-978f-d07ab42dd849",
+      "credentials": {
+        "telegramApi": {
+          "id": "BIG6Y9QA3BjwAknh",
+          "name": "Telegram PlaygroundDouJhon"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "keepOnlySet": true,
+        "values": {
+          "string": [
+            {
+              "name": "queue",
+              "value": "={{\n  (() => {\n    let text = $json.message.text.trim();\n\n    // remove UF tipo ,PR ,SP\n    text = text.replace(/,\\\\s*[A-Za-z]{2}$/i, (m) => {\n      return m.toUpperCase() === m && ['SP','RJ','MG','PR','SC','RS','BA','PE','CE','GO','DF','AM','PA','MT','MS','ES','RN','PB','AL','SE','PI','MA','TO','RO','RR','AP','AC'].includes(m.replace(',','').trim())\n        ? ''\n        : m;\n    });\n\n    // se já tem país (London,GB)\n    if (/,\\\\s*[A-Za-z]{2}$/.test(text)) {\n      return text;\n    }\n\n    // default BR\n    return `${text},BR`;\n  })()\n}}\n"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "20ff7366-3f38-4498-a204-47ffebf58aa7",
+      "name": "Set queue (raw)",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 2,
+      "position": [
+        -976,
+        -144
+      ]
+    },
+    {
+      "parameters": {
+        "url": "https://api.openweathermap.org/data/2.5/weather",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "q",
+              "value": "={{ $json.queue }}"
+            },
+            {
+              "name": "units",
+              "value": "metric"
+            },
+            {
+              "name": "lang",
+              "value": "pt_br"
+            },
+            {
+              "name": "appid",
+              "value": "={{ $env.OPENWEATHER_API_KEY }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "0b55b09e-57ad-4b64-88e3-0dc2bb56189e",
+      "name": "OpenWeather (HTTP Request)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [
+        -752,
+        -144
+      ],
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 1
+          },
+          "conditions": [
+            {
+              "id": "dfd4f63e-cb5d-4552-8b83-def8d449c77e",
+              "leftValue": "={{ $json.main && $json.main.temp !== undefined }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "7352e9b4-debc-4172-a05d-216dc9ba8b3a",
+      "name": "IF success",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        -528,
+        -144
+      ]
+    },
+    {
+      "parameters": {
+        "keepOnlySet": true,
+        "values": {
+          "string": [
+            {
+              "name": "message",
+              "value": "❌ Cidade não encontrada. Use o formato Cidade,UF (ex.: São Paulo,SP)."
+            }
+          ],
+          "boolean": [
+            {
+              "name": "ok"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "7a9f655e-8c67-45cd-a336-1a10470b40a0",
+      "name": "Build error message",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 2,
+      "position": [
+        -304,
+        -48
+      ]
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $node[\"Telegram Trigger\"].json.message.chat.id }}",
+        "text": "={{\n  (() => {\n    const data = $json;\n\n    const temp = Math.round(data.main.temp);\n    const feels = Math.round(data.main.feels_like);\n    const humidity = data.main.humidity;\n    const wind = data.wind.speed.toFixed(1);\n    const clouds = data.clouds.all;\n    const desc = data.weather[0].description;\n    const city = data.name;\n    const country = data.sys.country;\n\n    const sunrise = new Date((data.sys.sunrise + data.timezone) * 1000)\n      .toUTCString()\n      .slice(17, 22);\n\n    const sunset = new Date((data.sys.sunset + data.timezone) * 1000)\n      .toUTCString()\n      .slice(17, 22);\n\n    return `🌤️ Clima agora em ${city}, ${country}\n\n🌡️ Temperatura: ${temp}°C\n🤔 Sensação térmica: ${feels}°C\n☁️ Condição: ${desc}\n💧 Umidade: ${humidity}%\n🌬️ Vento: ${wind} m/s\n☁️ Nuvens: ${clouds}%\n\n🌅 Nascer do sol: ${sunrise}\n🌇 Pôr do sol: ${sunset}`;\n  })()\n}}\n\n",
+        "additionalFields": {}
+      },
+      "id": "bc4be2f6-3d90-493e-a137-c9557886bd4e",
+      "name": "Telegram Send (success)",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1,
+      "position": [
+        -304,
+        -240
+      ],
+      "webhookId": "21b952e7-d52f-437e-8f10-b2038cd6c537",
+      "credentials": {
+        "telegramApi": {
+          "id": "BIG6Y9QA3BjwAknh",
+          "name": "Telegram PlaygroundDouJhon"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $node[\"Telegram Trigger\"].json.message.chat.id }}",
+        "text": "={{ $json.message }}",
+        "additionalFields": {}
+      },
+      "id": "32566d65-f790-48ba-ab93-47d9e9ca329d",
+      "name": "Telegram Send (error)",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1,
+      "position": [
+        -80,
+        -48
+      ],
+      "webhookId": "4e3a9336-c8e5-4313-916a-a4c0563e06f3",
+      "credentials": {
+        "telegramApi": {
+          "id": "BIG6Y9QA3BjwAknh",
+          "name": "Telegram PlaygroundDouJhon"
+        }
+      }
+    }
+  ],
+  "pinData": {
+    "Telegram Trigger": [
+      {
+        "json": {
+          "update_id": 384183874,
+          "message": {
+            "message_id": 95,
+            "from": {
+              "id": 770153734,
+              "is_bot": false,
+              "first_name": "Jhonathan",
+              "username": "uJhonathan",
+              "language_code": "pt-br"
+            },
+            "chat": {
+              "id": 770153734,
+              "first_name": "Jhonathan",
+              "username": "uJhonathan",
+              "type": "private"
+            },
+            "date": 1768704004,
+            "text": "pato branco"
+          }
+        },
+        "pairedItem": {
+          "item": 0
+        }
+      }
+    ]
+  },
+  "connections": {
+    "Telegram Trigger": {
+      "main": [
+        [
+          {
+            "node": "Set queue (raw)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set queue (raw)": {
+      "main": [
+        [
+          {
+            "node": "OpenWeather (HTTP Request)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenWeather (HTTP Request)": {
+      "main": [
+        [
+          {
+            "node": "IF success",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF success": {
+      "main": [
+        [
+          {
+            "node": "Telegram Send (success)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Build error message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build error message": {
+      "main": [
+        [
+          {
+            "node": "Telegram Send (error)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "availableInMCP": false
+  },
+  "versionId": "fa034890-ae93-4a18-ba4c-5c89da957352",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "c57f94f27540a7c153351ea15d9112f25f1b5179cfafe63d2c9018c9d630473e"
+  },
+  "id": "DRm7qZ6SyIeQAdUf",
+  "tags": []
+}
