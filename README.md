@@ -112,27 +112,3 @@ Se a cidade não for encontrada:
 
 ❌ Cidade não encontrada.
 Use apenas o nome da cidade (ex.: Curitiba, São Paulo).
-
-🛡️ Observações importantes
-
-O repositório é público
-
-Nenhuma credencial real está presente no JSON ou README
-
-O workflow funciona após importação
-
-Projeto segue o conceito no-code / low-code
-
-Apenas expressões simples foram utilizadas quando necessário
-
-✅ Status final da entrega
-
-✔ Workflow funcional
-✔ Tratamento de erros implementado
-✔ Uso correto de variáveis de ambiente (OpenWeather)
-✔ Uso correto de credenciais do n8n (Telegram)
-✔ Documentação clara e avaliável
-
-🏁 Conclusão
-
-Este projeto demonstra, de forma prática, a criação de um chatbot funcional integrando Telegram + n8n + OpenWeather, com foco em boas práticas de integração, tratamento de erros e organização de fluxos no-code.
